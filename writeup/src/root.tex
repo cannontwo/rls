@@ -1,0 +1,91 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage[onehalfspacing]{setspace}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{enumitem}
+
+\newcommand\fixme[2][FIXME]{\textcolor{red}{\textbf{#1:} #2}}
+\newcommand\R[2]{\mathbb{R}^{#1\times #2}}
+ 
+\title{A Tutorial on Multivariate Recursive Least Squares}
+\author{W. Cannon Lewis II\thanks{Rice University Computer Science Department (\href{http://cannontwo.com}{cannontwo.com})}}
+
+\begin{document}
+
+\maketitle
+
+\abstract{
+Least squares estimation---also known as linear regression---is one of the
+fundamental tools underlying modern data science and machine learning.  Its
+typical exposition assumes a fixed dataset which is analyzed as a whole, but
+this assumption is violated when data arrives in a stream over time. The least
+squares estimate can instead be computed online using an algorithm known as
+recursive least squares. In this note we will derive the update equations for
+recursive least squares applied to both centered and uncentered data.
+Additionally, we will draw connections between practical implementations of
+recursive least squares and $l^2$-regularized least squares, which is also
+known as ridge regression.
+}
+
+\tableofcontents
+\newpage
+
+\section{Notation}
+\label{sec:notation}
+\begin{table}[htb]
+  \centering
+  \begin{tabular}{c | c | c}
+    \toprule 
+    \textbf{Symbol}  & \textbf{Space} & \textbf{Meaning} \\
+    \midrule
+    $n$ & $\mathbb{N}$ & Input feature dimension \\
+    $m$ & $\mathbb{N}$ & Output dimension \\
+    $\varphi_t$ & $\R{1}{n}$ & Feature vector at time $t$ \\
+    $\mu_x(t)$ & $\R{1}{n}$ & Feature mean at time $t$ \\
+    $X_t$ & $\R{t}{n}$ & Design matrix of stacked feature vectors from timesteps 0 to $t$ \\
+    $y_t$ & $\R{1}{m}$ & Output vector at time $t$ \\
+    $\mu_y(t)$ & $\R{1}{n}$ & Output mean at time $t$ \\
+    $Y_t$ & $\R{t}{m}$ & Output matrix of stacked output vectors from timesteps 0 to $t$ \\
+    $\Theta$ & $\R{n}{m}$ & True linear model coefficients \\
+    $\hat\Theta$ & $\R{n}{m}$ & Estimated model coefficients \\
+    $P_t$ & $\R{n}{n}$ & Inverse sample covariance matrix \\
+    $Q_t$ & $\R{n}{n}$ & Inverse mean-corrected sample covariance matrix \\
+    $R_t$ & $\R{n}{n}$ & Rank-2 update to corrected sample covariance matrix \\
+    $V_t$ & $\R{2}{n}$ & $\left[\mu_x(t-1)^\top \quad \varphi_t^\top\right]^\top$ \\
+    \bottomrule
+  \end{tabular}
+  \vspace{1em}
+  \caption{Notation used in this paper}
+  \label{table:notation}
+\end{table}
+
+In addition to the table above, we use the notation $x^\top$ to represent the transpose of a matrix $x$.
+
+\section{Problem Formulation}
+\label{sec:problem}
+\input{src/formulation}
+
+\section{Centered Data}
+\label{sec:centered}
+\input{src/centered}
+
+\section{Uncentered Data}
+\label{sec:uncentered}
+\input{src/uncentered}
+
+\section{Practical Issues}
+\label{sec:practical}
+\input{src/practical}
+
+\newpage
+
+\bibliographystyle{unsrt}
+\bibliography{bib/main}
+
+\end{document}

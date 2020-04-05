@@ -1,0 +1,28 @@
+Let us define a data stream as a function $F(t): \mathbb{N} \rightarrow \R{1}{n} \times \R{1}{m}$ that, for $t \in \mathbb{N}$,
+can be defined as 
+\begin{equation} 
+  F(t) := (\varphi_t, y_t)
+\end{equation}
+where $\varphi_t$ and $y_t$ are related according to 
+\begin{equation}
+  y_t = \varphi_t \Theta + \epsilon_t, \quad \mathbb{E}\left[\epsilon_t\right] = 0
+\end{equation} 
+Note that we assume that the output of the underlying linear model with true
+parameters $\Theta$ is corrupted at each time step by some additive, zero-mean
+white noise $\epsilon_t$. Since the purpose of this note is not to explore the
+statistical properties of recursive least squares, we skip over further
+clarification of the properties of this noise; results follow from the standard
+statistical analysis of linear regression~\cite{bishop2006pattern}. 
+
+\subsection{Static Least Squares}
+If we wait to observe $T \in \mathbb{N}$ time steps of input-output pairs, we can assemble the matrices $X_T$ and $Y_T$ by vertically stacking the $\varphi_t$ and $y_t$ observations for $t = 1,\ldots,T$. Given these matrices, the least squares estimation problem is formulated as
+\begin{align}
+  \min_{\hat\Theta} &=  \sum_{t=1}^\top ||y_t - \varphi_t\hat\Theta||_2^2\\
+                    &=  ||Y_T - X_T\hat\Theta||_2^2
+\end{align}
+It is well known (see, e.g.,~\cite{bishop2006pattern}) that the solution to
+this problem is given by the ``normal equation''
+\begin{equation}
+  \label{eq:theta_ls}
+  \hat\Theta_{LS}(T) := \left(X_T^\top X_T\right)^{-1}X_T^\top Y_T
+\end{equation}

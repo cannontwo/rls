@@ -1,0 +1,89 @@
+From Equation~\ref{eq:theta_ls} we can begin to derive the recursive least
+squares estimator. It is worth noting at the beginning of this derivation that
+we have implicitly assumed that our data is already centered; in other words,
+the relationship between $\varphi_t$ and $y_t$ has no offset term, and so our
+model $\hat\Theta_{LS}$ will always predict an output vector of all zeros for
+an input vector of all zeros. This is a fine assumption when all of the data
+has been collected ahead of time, but breaks down when we want to do recursive
+least squares because we cannot estimate the means of our inputs and outputs
+ahead of time. Since it is easier to derive the recursive least squares
+estimator in the centered case than in the uncentered case, we tackle this
+limited version first. 
+
+\subsection{Breaking Up the Normal Equation}
+We begin by writing out the normal equation as two sums multiplied together
+\begin{align}
+  \hat\Theta_{LS}(T) &= (X_T^\top X_T)^{-1} X_T^\top Y_T \\
+                  &= \left[\sum_{t=1}^T \varphi_t^\top \varphi_t\right]^{-1} \left[\sum_{t=1}^T\varphi_t^\top y_t \right] \label{eq:two_sums}
+\end{align}
+Let us define the inverse sample covariance matrix $P_T$ to be the left-hand
+term in Equation~\ref{eq:two_sums}, so that we then have
+\begin{align}
+  \label{eq:sample_covar_split}
+  P_T^{-1} &= \sum_{t=1}^T \varphi_t^\top \varphi_t \\
+           &= P_{T - 1}^{-1} + \varphi_T^\top \varphi_T \label{eq:p_inv_update}\\
+  \implies P_{T - 1}^{-1} &= P_T^{-1} - \varphi_T^\top \varphi_T \label{eq:sub_covar}
+\end{align}
+Similarly, we can break up the right-hand term in Equation~\ref{eq:two_sums}:
+\begin{equation}
+  \sum_{t=1}^T\varphi_t^\top y_t = \sum_{t=1}^{T-1} \varphi_t^\top y_t + \varphi_T^\top y_T
+\end{equation}
+
+\subsection{Deriving the $\Theta$ Update}
+Our normal equation is now
+\begin{equation}
+  \hat\Theta_{LS} = P_T \cdot \left[\sum_{t=1}^{T-1} \varphi_t^\top y_t + \varphi_T^\top y_T
+\right]
+\end{equation}
+Using the definition of $\hat\Theta_{LS}(T - 1)$, we get
+\begin{equation}
+  \hat\Theta_{LS}(T) = P_T \cdot \left[P_{T-1}^{-1} \hat\Theta_{LS}(T-1) + \varphi_T^\top y_T\right]
+\end{equation}
+Substituting in Equation~\ref{eq:sub_covar}:
+\begin{align}
+  \hat\Theta_{LS}(T) &= P_T \cdot \left[(P_{T}^{-1} - \varphi_T^\top \varphi_T) \hat\Theta_{LS}(T-1) + \varphi_T^\top y_T\right] \\
+                     &= \hat\Theta_{LS}(T - 1) - P_T \varphi_T^\top \varphi_T \hat\Theta_{LS}(T-1) + P_T \varphi_T^\top y_T \\
+                     &= \hat\Theta_{LS}(T - 1) + P_T \varphi_T^\top \left[y_T - \varphi_T\hat\Theta_{LS}(T-1)\right] \label{eq:centered_theta_update}
+\end{align}
+Note that the last term in Equation~\ref{eq:centered_theta_update} ($y_T -
+\varphi_T\hat\Theta_{LS}(T-1)$) is the prediction error of our model at
+timestep $T-1$ on the new datum, so the new estimate of $\Theta$ that we get is
+the old estimate plus the prediction error on a new datum filtered by $P_T
+\varphi_T^\top$. Intuitively, this represents a reweighting of the prediction
+error using our existing estimate of the sample covariance, which effectively
+rescales the update to $\Theta$ to take into account the scales of the
+coordinates of the features.
+
+\subsection{Deriving the $P_T$ Update}
+Though Equation~\ref{eq:p_inv_update} gives us a way to update $P_T^{-1}$
+easily with each new datum, to recover $P_T$ and update
+$\hat\theta_{LS}$ we would need to invert an $n\times n$ matrix at on each time
+step. This is not only computationally expensive for all but small values of
+$n$, it also introduces the risk of running into floating-point errors if
+$P_T^{-1}$ ever becomes ill-conditioned\footnote{These sorts of issues can also
+be dealt with using any number of techniques from numerical linear
+algebra~\cite{trefethen1997numerical}}.
+
+We can get around these issues by doing away with $P_T^{-1}$ all together and
+deriving a direct update for $P_T$. We do this with the Woodbury matrix
+identity~\cite{woodbury1950inverting}, also known as the ``matrix inversion
+lemma.'' This result tells us that for matrices $A, U, C, V$ such that $UCV$ has rank $k$, the inverse of the rank-$k$ update is given by:
+\begin{equation}
+  \left(A + UCV\right)^{-1} = A^{-1} - A^{-1}U\left(C^{-1} + VA^{-1}U\right)^{-1}VA^{-1}
+\end{equation}
+In our case, since we are doing a rank-1 update $\varphi_T^\top \varphi_T$ to
+$P_{T-1}^{-1}$, this lemma gives us that
+\begin{equation}
+  \label{eq:centered_p_update}
+  \left(P_{T-1}^{-1} + \varphi_T^\top \varphi_T\right)^{-1} = P_{T - 1} - \frac{P_{T-1}\varphi_T^\top \varphi_T P_{T-1}}{1 + \varphi_T P_{T-1} \varphi_T^\top}
+\end{equation}
+And just like that, we're done! Equations~\ref{eq:centered_theta_update}
+and~\ref{eq:centered_p_update} give us the update equations that define the
+recursive least squares algorithm. At each timestep $t$, we simply need to:
+\begin{enumerate}
+\begin{singlespace}
+  \item Record $\varphi_t$ and $y_t$ from our datastream $F(t)$. 
+  \item Calculate $P_t$ from $P_{t-1}$ and $\varphi_t$ using Equation~\ref{eq:centered_p_update}. 
+  \item Calculate $\hat\Theta_{LS}(t)$ from $\hat\Theta_{LS}(t-1)$, $\varphi_t$, $y_t$, and $P_{t}$ using Equation~\ref{eq:centered_theta_update}. 
+\end{singlespace}
+\end{enumerate}
