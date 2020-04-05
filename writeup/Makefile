@@ -3,6 +3,7 @@
 
 root.pdf: src/*.tex Makefile
 	latexmk -pdf -bibtex -pdflatex="pdflatex -interaction=nonstopmode -file-line-error -shell-escape" -use-make src/root.tex
+	cp root.pdf writeup.pdf
 
 # Optimize the paper for submission
 root_opt.pdf: root.pdf
