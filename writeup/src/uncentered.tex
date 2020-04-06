@@ -1,0 +1,152 @@
+In the general linear regression setting, we cannot assume that the data is
+centered. We might have a persistent constant offset vector added to the input
+features or the output which will cause the centered recursive least squares
+estimator to be inaccurate or have worse generalization. In the static data
+regime, estimation of this constant offset can be done prior to solving the
+least squares problem by calculating the feature and output means. In online
+estimation, we need to not only update the means at each timestep but also to
+correct the previous parameter estimate with respect to the new mean estimate.
+While the algebra becomes a bit more complex, the eventual structure of the
+update equations is remarkably similar to the uncentered case.
+
+In order to contain the complexity of the following derivation, we proceed in
+stages. First, we will consider the case when the input features are centered
+but the output is not. Then we will consider the inverse case, where the input
+features are not centered but the output is. We will then see how these two
+cases can be combined in the general uncentered recursive least squares
+estimator.
+
+\subsection{Centered X, Uncentered Y}
+In this case we want to solve the problem
+\begin{equation}
+  (y_T - \mu_y(T)) = \varphi_T\hat\Theta(T)
+\end{equation}
+When the output data we are provided by $F(t)$ are not already centered, we
+center it prior to solving the least squares problem. Note that it is simple to calculate the output mean online, since
+\begin{align}
+  \mu_y(T) &= \frac{1}{T}\sum_{t=1}^T y_t \\
+           &= \frac{T - 1}{T}\mu_y(T - 1) + \frac{1}{T}y_T \\
+  \implies T\mu_y(T) &= (T - 1)\mu_y(T - 1) + y_T \\
+                     &= T \mu_y(T - 1) + y_T - \mu_y(T - 1) \\
+  \implies \mu_y(T) &= \mu_y(T - 1) + \frac{1}{T} (y_T - \mu_y(T-1))
+\end{align}
+Thus the normal equation in this case is given by 
+\begin{align}
+  (X_T^\top X_T)^{-1} X_T^\top \left(Y_T - \bar{1}\mu_y(T)\right) &= (X_T^\top X_T)^{-1} X_T^\top \left(Y_T - \bar{1}\frac{1}{T}\sum_{t=1}^Ty_t\right) \\
+                                                                  &= (X_T^\top X_T)^{-1} X_T^\top Y_T - (X_T^\top X_T)^{-1} X_T^\top \bar{1}\frac{1}{T}\sum_{t=1}^Ty_t \label{eq:split_uncentered_y}
+\end{align}
+Note that the first term in Equation~\ref{eq:split_uncentered_y} is just the
+normal equation for the centered least squares problem that we already derived
+recursive update equations for, so all that remains is expanding the second
+term as
+\begin{align}
+  (X_T^\top X_T)^{-1} X_T^\top \bar{1}\mu_y(T) &= P_T \sum_{t=1}^T \varphi_t^\top \mu_y(T) \\
+                                               &= T \cdot P_T \mu_x(T)^\top \mu_y(T) \label{eq:correction_1}
+\end{align}
+Of course, in the current case $\mu_x = \bar{0}$, so this correction term is
+actually zero and we recover the same update equations as previously derived.
+However, Equation~\ref{eq:correction_1} will come in handy later when we derive
+the general uncentered update.
+
+Even though the update equations are the same, the final prediction of our
+model includes a constant offset term that we can derive from the model
+equation
+\begin{align}
+  (y_T - \mu_y(T)) &= \varphi_T\hat\Theta_{LS}(T) \\
+  \implies y_T &= \varphi_T\hat\Theta_{LS}(T) + \mu_y(T)
+\end{align}
+
+\subsection{Uncentered X, Centered Y}
+In this case we want to solve the problem
+\begin{equation}
+  y_T = (\varphi_T - \mu_x(T))\hat\Theta(T)
+\end{equation}
+In the same way that we calculated the update equation for $\mu_y$, we calculate 
+\begin{equation}
+  \mu_x(T) = \mu_x(T - 1) + \frac{1}{T}(\varphi_T - \mu_x(T - 1))
+\end{equation}
+The normal equation for this case is given by
+\begin{multline}
+  \label{eq:expanded_uncentered_x_normal}
+  \left[(X_T - \bar{1}\mu_x(t))^\top(X_T - \bar{1}\mu_x(t))\right]^{-1}(X_T - \bar{1}\mu_x(t))^\top Y = \\ \left[(X_T^\top X_T - X_T^\top \bar{1}\mu_x(T) - (\bar{1}\mu_x(T))^\top X_T + \mu_x(T)^\top\mu_x(T)\right]^{-1}(X_T - \bar{1}\mu_x(t))^\top Y
+\end{multline}
+Note that
+\begin{align}
+  X_T^\top \bar{1}\mu_x(T) &= \sum_{t=1}^T \varphi_t^\top \mu_x(T) \\
+                           &= T \mu_x(T)^\top \mu_x(T)
+\end{align}
+Thus Equation~\ref{eq:expanded_uncentered_x_normal} becomes
+\begin{multline}
+  \left[(X_T^\top X_T - 2T\mu_x(T)^\top\mu_x(T) + \mu_x(T)^\top\mu_x(T)\right]^{-1}(X_T - \bar{1}\mu_x(t))^\top Y = \\ \left[(P_T^{-1} - (2T - 1)\mu_x(T)^\top\mu_x(T)\right]^{-1}(X_T - \bar{1}\mu_x(t))^\top Y
+\end{multline}
+Let us define, analogously to $P_T$ from before, 
+\begin{equation}
+  Q_T := \left[P_T^{-1} - (2T - 1)\mu_x(T)^\top\mu_x(T)\right]^{-1}
+\end{equation}
+
+\subsubsection{Deriving the $Q_T$ Update}
+As with $P_T$, we begin by developing an update for $Q_T^{-1}$ in terms of $Q_{T-1}^{-1}$
+\begin{align}
+  Q_T^{-1} &= P_T^{-1} - (2T - 1)\mu_x(T)^\top\mu_x(T) \\
+           &= P_T^{-1} - 2T\mu_x(T)^\top\mu_x(T) - \mu_x(T)^\top\mu_x(T) \\
+           &= P_{T-1}^{-1} + \varphi_T^\top\varphi_T - 2T(\frac{T - 1}{T}\mu_x(T-1) + \frac{1}{T}\varphi_T)^\top(\frac{T - 1}{T}\mu_x(T-1) + \frac{1}{T}\varphi_T) \nonumber \\ &\qquad\qquad - \frac{1}{T^2}((T-1)\mu_x(T-1) + \varphi_T)^\top((T-1)\mu_x(T-1) + \varphi_T) \\
+           &= P_{T-1}^{-1} + \varphi_T^\top\varphi_T - \frac{2}{T}((T-1)\mu_x(T-1) + \varphi_T)^\top((T - 1)\mu_x(T-1) + \varphi_T) \nonumber \\ &\qquad\qquad - \frac{1}{T^2}((T-1)\mu_x(T-1) + \varphi_T)^\top((T-1)\mu_x(T-1) + \varphi_T)\\
+           &= P_{T-1}^{-1} + \varphi_T^\top\varphi_T - \frac{2T - 1}{T^2}((T-1)\mu_x(T-1) + \varphi_T)^\top((T-1)\mu_x(T-1) + \varphi_T) \label{eq:Q_T_partial}
+\end{align}
+As a side computation, and to avoid stacking even longer equations, let $\mu := \mu_x(T - 1)$ and note
+\begin{align}
+  ((T - 1)\mu + \varphi_T)^\top((T-1)\mu + \varphi_T) &= (T - 1)^2\mu^\top\mu + (T-1)\mu^\top\varphi_T + (T-1)\varphi_T^\top\mu + \varphi_T^\top\varphi_T
+\end{align}
+With this, Equation~\ref{eq:Q_T_partial} can be written as
+\begin{align}
+  Q_T^{-1} &= (P_{T-1}^{-1} - (2T - 1)\mu^\top\mu + 2\mu^\top\mu) - 2\mu^\top\mu + \varphi_T^\top\varphi_T- \frac{2T - 1}{T^2}\left[(-2T + 1)\mu^\top\mu + (T-1)\mu^\top\varphi_T + (T-1)\varphi_T^\top\mu + \varphi_T^\top\varphi_T\right] \\
+           &= (P_{T-1}^{-1} - (2(T-1) - 1)\mu^\top\mu) - 2\mu^\top\mu + \varphi_T^\top\varphi_T + \frac{2T - 1}{T^2}\left[(-2T + 1)\mu^\top\mu + (T-1)\mu^\top\varphi_T + (T-1)\varphi_T^\top\mu + \varphi_T^\top\varphi_T\right] \\
+           &= Q_{T-1}^{-1} - 2\mu^\top\mu + \varphi_T^\top\varphi_T- \frac{2T - 1}{T^2}\left[(-2T + 1)\mu^\top\mu + (T-1)\mu^\top\varphi_T + (T-1)\varphi_T^\top\mu + \varphi_T^\top\varphi_T\right]
+\end{align}
+One final expansion:
+\begin{equation}
+  Q_T^{-1} = Q_{T-1}^{-1} + \frac{1}{T^2}\left[((2T+1)^2 - 2T^2)\mu^\top\mu - (2T - 1)(T - 1)\mu^\top\varphi_T - (2T - 1)(T - 1)\varphi_T^\top\mu + (T^2 - 2T + 1)\varphi_T^\top\varphi_T\right]
+\end{equation}
+And now we can see that this can be written as
+\begin{equation}
+  Q_T^{-1} = Q_{T-1}^{-1} + \frac{1}{T^2}
+  \begin{bmatrix}
+    \mu_x(T-1)^\top & \varphi_T^\top
+  \end{bmatrix}
+  \begin{bmatrix}
+    (2T - 1)^2 - 2T^2 & -(2T - 1)(T - 1) \\
+    -(2T - 1)(T - 1) & (T - 1)^2
+  \end{bmatrix}
+  \begin{bmatrix}
+    \mu_x(T - 1) \\
+    \varphi_T
+  \end{bmatrix}
+\end{equation}
+Let us define
+\begin{align}
+  C_T &:= \frac{1}{T^2}
+  \begin{bmatrix}
+    (2T - 1)^2 - 2T^2 & -(2T - 1)(T - 1) \\
+    -(2T - 1)(T - 1) & (T - 1)^2
+  \end{bmatrix} \\
+  V_T &:= 
+  \begin{bmatrix}
+    \mu_x(T - 1) \\
+    \varphi_T
+  \end{bmatrix} \\
+  R_T &:= V_T^\top C_T V_T
+\end{align}
+So that 
+\begin{equation}
+  \label{eq:Q_T_inv}
+  Q_T^{-1} = Q_{T - 1}^{-1} + R_T
+\end{equation}
+The Woodbury matrix identity (Equation~\ref{eq:woodbury}) gives us, at the end
+of all this, an update rule for $Q_T$:
+\begin{equation}
+  Q_T = Q_{T - 1} - Q_{T - 1}V_T^\top\left(C_T^{-1} + V_TQ_{T-1}V_T^\top\right)^{-1}V_TQ_{T-1}
+\end{equation}
+Note that this is a rank-2 update to $Q_{T-1}$, since we are using both the
+sample mean at time $T - 1$ and the new data at time $T$ to compute the update.
+
+\subsubsection{Deriving the $\hat\Theta$ Update}

@@ -29,7 +29,7 @@ Similarly, we can break up the right-hand term in Equation~\ref{eq:two_sums}:
   \sum_{t=1}^T\varphi_t^\top y_t = \sum_{t=1}^{T-1} \varphi_t^\top y_t + \varphi_T^\top y_T
 \end{equation}
 
-\subsection{Deriving the $\Theta$ Update}
+\subsection{Deriving the $\hat\Theta$ Update}
 Our normal equation is now
 \begin{equation}
   \hat\Theta_{LS} = P_T \cdot \left[\sum_{t=1}^{T-1} \varphi_t^\top y_t + \varphi_T^\top y_T
@@ -69,6 +69,7 @@ deriving a direct update for $P_T$. We do this with the Woodbury matrix
 identity~\cite{woodbury1950inverting}, also known as the ``matrix inversion
 lemma.'' This result tells us that for matrices $A, U, C, V$ such that $UCV$ has rank $k$, the inverse of the rank-$k$ update is given by:
 \begin{equation}
+  \label{eq:woodbury}
   \left(A + UCV\right)^{-1} = A^{-1} - A^{-1}U\left(C^{-1} + VA^{-1}U\right)^{-1}VA^{-1}
 \end{equation}
 In our case, since we are doing a rank-1 update $\varphi_T^\top \varphi_T$ to
