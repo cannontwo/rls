@@ -150,3 +150,58 @@ Note that this is a rank-2 update to $Q_{T-1}$, since we are using both the
 sample mean at time $T - 1$ and the new data at time $T$ to compute the update.
 
 \subsubsection{Deriving the $\hat\Theta$ Update}
+Returning to the normal equation
+\begin{align}
+  \hat\Theta_{LS}(T) &= Q_T (X_T - \bar{1} \mu_x(T))^\top Y \\
+                     &= Q_TX^\top Y - Q_T \mu_x(T)^\top\bar{1}^\top Y \\
+                     &= Q_T\left[Q_{T-1}^{-1}(t-1)\hat\Theta_{LS}(T-1) + \varphi_T^\top y_T\right] - TQ_T\mu_x(T)^\top \mu_y(T) \\
+                     &= Q_T \varphi_T^\top y_T + Q_T\left[Q_{T}^{-1} - C_T\right]\hat\Theta_{LS}(T-1) - TQ_T\mu_x(T)^\top\mu__y(T) \\
+                     &= \hat\Theta_{LS}(T-1) + Q_T\left[\varphi_T^\top y_T - C_T\hat\Theta_{LS}(T-1)\right] - TQ_T\mu_x(T)^\top \mu_y(T) \label{eq:uncentered_x_theta_with_correction}
+\end{align}
+Since in the current case we are assuming that $Y$ is already centered,
+$\mu_y(T) = \bar{0}$ and the above reduces to
+\begin{equation}
+  \hat\Theta_{LS}(T) = \hat\Theta_{LS}(T-1) + Q_T\left[\varphi_T^\top y_T - C_T\hat\Theta_{LS}(T-1)\right] \label{eq:uncentered_x_theta_update}
+\end{equation}
+This corresponds roughly to the $\hat\Theta$ update in the centered case (Equation~\ref{eq:centered_theta_update}).
+
+\subsection{Uncentered X, Uncentered Y}
+We have finally arrived at the general case, in which our problem is expressed as 
+\begin{equation}
+  (y_T - \mu_y(T)) = (\varphi_T - \mu_x(T))\hat\Theta(T)
+\end{equation}
+The normal equation for this case is 
+\begin{align}
+  \left[(X_t - \bar{1}\mu_x(T))^\top(X_T - \bar{1}\mu_x(T))\right]^{-1}(X_T &- \bar{1}\mu_x(T))^\top (Y_T - \bar{1}\mu_y(T)) \nonumber \\ &= Q_T(X_T - \bar{1}\mu_x(T))^\top (Y_T - \bar{1}\mu_y(T)) \\
+                                                                            &= Q_T (X_T - \bar{1}\mu_x(T))^\top Y - Q_T(X_T - \bar{1}\mu_x(T))^\top\bar{1}\mu_y(T) \label{eq:uncentered_xy_normal}
+\end{align}
+Note that the first term in Equation~\ref{eq:uncentered_xy_normal} is the
+normal equation for the uncentered X, centered Y case previously analyzed. Thus
+all that we need to do in order to derive the update for $\hat\Theta$ is expand the second term. This is easy, though, because
+\begin{align}
+  Q_T(X_T - \bar{1}\mu_x(T))^\top\bar{1}\mu_y(T) &= Q_TX_T^\top\bar{1}\mu_y(T) - Q_T\mu_x(T)^\top\bar{1}^\top\bar{1}\mu_y(T)\\
+                                                 &= TQ_T\mu_x(T)^\top \mu_y(T) - Q_T\mu_x(T)^\top\mu_y(T) \\
+                                                 &= (T - 1)Q_T \mu_x(T)^\top \mu_y(T)
+\end{align}
+This, combined with the correction term in
+Equation~\ref{eq:uncentered_x_theta_with_correction} (which is now nonzero
+since we assume that $\mu_Y(T) \neq 0$), gives us a total correction of $(2T -
+1) Q_T \mu_x(T)^\top \mu_y(T)$.
+
+Since the update equation for $Q_T$ depends only on $\varphi_T$ and $\mu_x(T)$,
+it only remains to give the final update equation for $\hat\Theta(T)$ in the
+uncentered X, uncentered Y case. Combining Equation~\ref{eq:uncentered_x_theta_update} with the previously stated correction term, we get the following update:
+\begin{align}
+  \hat\Theta_{RAW}(T) &= \hat\Theta_{RAW}(T-1) + Q_T\left[\varphi_T^\top y_T - C_T\hat\Theta_{RAW}(T-1)\right]\\
+  \hat\Theta_{LS}(T) &= \hat\Theta_{RAW}(T) - (2T - 1)Q_T\mu_x(T)^\top \mu_y(T)
+\end{align}
+
+Recall that our original problem in the uncentered case was
+\begin{equation}
+  (y_T - \mu_y(T)) = (\varphi_T - \mu_x(T))\hat\Theta
+\end{equation}
+Thus the prediction of the recursive least squares filter in the uncentered X, uncentered Y case for a new $\varphi'$ is given by
+\begin{align}
+  (\hat{y}' - \mu_y(T)) &= (\varphi' - \mu_x(T))\hat\Theta_{LS}(T) \\
+  \implies \hat{y}' &= \varphi'\hat\Theta_{LS}(T) + (\mu_y(T) - \mu_x(T)\hat\Theta_{LS}(T))
+\end{align}

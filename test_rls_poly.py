@@ -79,8 +79,8 @@ def run(alpha=1e4):
         plt.clf()
 
 def run_animate():
-    poly_dim = 20
-    true_poly_dim = 20
+    poly_dim = 1
+    true_poly_dim = 2
 
     model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1.0)
     high_alpha_model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1e2)
@@ -123,7 +123,7 @@ def run_animate():
 
     def animate(i):
         x_new = np.random.uniform(-1, 1, size=(1, 1))
-        y_new = A.dot(transform.fit_transform(x_new).transpose()) + b + np.random.randn(1, 1) * 1e-1
+        y_new = A.dot(true_transform.fit_transform(x_new).transpose()) + b + np.random.randn(1, 1) * 1e-1
 
         x_data.append(x_new)
         y_data.append(y_new)

@@ -76,7 +76,7 @@ In our case, since we are doing a rank-1 update $\varphi_T^\top \varphi_T$ to
 $P_{T-1}^{-1}$, this lemma gives us that
 \begin{equation}
   \label{eq:centered_p_update}
-  \left(P_{T-1}^{-1} + \varphi_T^\top \varphi_T\right)^{-1} = P_{T - 1} - \frac{P_{T-1}\varphi_T^\top \varphi_T P_{T-1}}{1 + \varphi_T P_{T-1} \varphi_T^\top}
+  P_T = \left(P_{T-1}^{-1} + \varphi_T^\top \varphi_T\right)^{-1} = P_{T - 1} - \frac{P_{T-1}\varphi_T^\top \varphi_T P_{T-1}}{1 + \varphi_T P_{T-1} \varphi_T^\top}
 \end{equation}
 And just like that, we're done! Equations~\ref{eq:centered_theta_update}
 and~\ref{eq:centered_p_update} give us the update equations that define the
