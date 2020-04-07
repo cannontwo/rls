@@ -155,7 +155,7 @@ Returning to the normal equation
   \hat\Theta_{LS}(T) &= Q_T (X_T - \bar{1} \mu_x(T))^\top Y \\
                      &= Q_TX^\top Y - Q_T \mu_x(T)^\top\bar{1}^\top Y \\
                      &= Q_T\left[Q_{T-1}^{-1}(t-1)\hat\Theta_{LS}(T-1) + \varphi_T^\top y_T\right] - TQ_T\mu_x(T)^\top \mu_y(T) \\
-                     &= Q_T \varphi_T^\top y_T + Q_T\left[Q_{T}^{-1} - C_T\right]\hat\Theta_{LS}(T-1) - TQ_T\mu_x(T)^\top\mu__y(T) \\
+                     &= Q_T \varphi_T^\top y_T + Q_T\left[Q_{T}^{-1} - C_T\right]\hat\Theta_{LS}(T-1) - TQ_T\mu_x(T)^\top\mu_y(T) \\
                      &= \hat\Theta_{LS}(T-1) + Q_T\left[\varphi_T^\top y_T - C_T\hat\Theta_{LS}(T-1)\right] - TQ_T\mu_x(T)^\top \mu_y(T) \label{eq:uncentered_x_theta_with_correction}
 \end{align}
 Since in the current case we are assuming that $Y$ is already centered,
