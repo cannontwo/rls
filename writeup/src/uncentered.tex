@@ -88,9 +88,6 @@ Let us define, analogously to $P_T$ from before,
 As with $P_T$, we begin by developing an update for $Q_T^{-1}$ in terms of $Q_{T-1}^{-1}$
 \begin{align}
   Q_T^{-1} &= P_T^{-1} - (2T - 1)\mu_x(T)^\top\mu_x(T) \\
-           &= P_T^{-1} - 2T\mu_x(T)^\top\mu_x(T) - \mu_x(T)^\top\mu_x(T) \\
-           &= P_{T-1}^{-1} + \varphi_T^\top\varphi_T - 2T(\frac{T - 1}{T}\mu_x(T-1) + \frac{1}{T}\varphi_T)^\top(\frac{T - 1}{T}\mu_x(T-1) + \frac{1}{T}\varphi_T) \nonumber \\ &\qquad\qquad - \frac{1}{T^2}((T-1)\mu_x(T-1) + \varphi_T)^\top((T-1)\mu_x(T-1) + \varphi_T) \\
-           &= P_{T-1}^{-1} + \varphi_T^\top\varphi_T - \frac{2}{T}((T-1)\mu_x(T-1) + \varphi_T)^\top((T - 1)\mu_x(T-1) + \varphi_T) \nonumber \\ &\qquad\qquad - \frac{1}{T^2}((T-1)\mu_x(T-1) + \varphi_T)^\top((T-1)\mu_x(T-1) + \varphi_T)\\
            &= P_{T-1}^{-1} + \varphi_T^\top\varphi_T - \frac{2T - 1}{T^2}((T-1)\mu_x(T-1) + \varphi_T)^\top((T-1)\mu_x(T-1) + \varphi_T) \label{eq:Q_T_partial}
 \end{align}
 As a side computation, and to avoid stacking even longer equations, let $\mu := \mu_x(T - 1)$ and note
