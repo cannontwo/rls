@@ -7,11 +7,14 @@ class RLSFilterAnalyticIntercept():
     intercept estimation.
     """
 
-    def __init__(self, input_dim, output_dim, alpha=1.0):
+    def __init__(self, input_dim, output_dim, alpha=1.0, forgetting_factor=1.0):
         self.input_dim = input_dim
         self.output_dim = output_dim
 
         self.param_dim = input_dim
+
+        self.alpha = alpha
+        self.forgetting_factor = forgetting_factor
 
         self.t = 0.0
 
@@ -36,7 +39,7 @@ class RLSFilterAnalyticIntercept():
         inv_part = np.linalg.inv(C) + V.dot(self.covar).dot(U)
         update = self.covar.dot(U).dot(np.linalg.inv(inv_part)).dot(V).dot(self.covar)
 
-        self.covar = self.covar - update
+        self.covar = (1.0 / self.forgetting_factor ** 2) * (self.covar - update)
 
     def _update_theta(self, C_t, feat, output):
         assert(feat.shape == (1, self.param_dim))
@@ -49,22 +52,22 @@ class RLSFilterAnalyticIntercept():
 
     def _update_output_mean(self, output):
         assert(output.shape == (self.output_dim, 1))
-        self.output_mean = self.output_mean + (1.0 / self.t) * (output.transpose() - self.output_mean)
+        self.output_mean = (self.forgetting_factor * self.output_mean) + (1.0 / self.t) * (output.transpose() - (self.forgetting_factor * self.output_mean))
 
     def _update_feat_mean(self, feat):
         assert(feat.shape == (1, self.param_dim))
-        self.feat_mean = self.feat_mean + (1.0 / self.t) * (feat - self.feat_mean)
+        self.feat_mean = (self.forgetting_factor * self.feat_mean) + (1.0 / self.t) * (feat - (self.forgetting_factor * self.feat_mean))
 
     def _make_U(self, feat):
         assert(feat.shape == (1, self.param_dim))
-        return np.block([self.feat_mean.transpose(), feat.transpose()])
+        return np.block([self.forgetting_factor * self.feat_mean.transpose(), feat.transpose()])
 
     def _make_V(self, feat):
         assert(feat.shape == (1, self.param_dim))
-        return np.block([[self.feat_mean],[feat]])
+        return np.block([[self.forgetting_factor * self.feat_mean],[feat]])
 
     def _make_C(self):
-        return (1 / self.t ** 2) * np.array([[((2.0 * self.t - 1.0) ** 2) - 2.0 * (self.t ** 2), -(2.0 * self.t - 1.0) * (self.t - 1.0)],
+        return (1 / ((self.forgetting_factor * self.t) ** 2)) * np.array([[((2.0 * self.t - 1.0) ** 2) - 2.0 * (self.t ** 2), -(2.0 * self.t - 1.0) * (self.t - 1.0)],
                          [-(2.0 * self.t - 1.0) * (self.t - 1.0), (self.t - 1.0) ** 2]])
 
     def process_datum(self, in_vec, output):

@@ -33,6 +33,7 @@ def calc_true_func(A, b, poly_dim):
     return xx, yy
 
 def calc_mse(model, x_data, y_data, poly_dim):
+
     transform = PolynomialFeatures(poly_dim, include_bias=False)
     total_err = 0.0
     for x, y in zip(x_data, y_data):
@@ -79,12 +80,16 @@ def run(alpha=1e4):
         plt.clf()
 
 def run_animate():
-    poly_dim = 1
-    true_poly_dim = 2
+    global A, x_data, y_data
+    poly_dim = 5
+    true_poly_dim = 5
 
     model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1.0)
     high_alpha_model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1e2)
     low_alpha_model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1e-2)
+    forgetting_model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1.0, forgetting_factor=0.99)
+    forgetting_high_alpha_model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1e2, forgetting_factor=0.99)
+    forgetting_low_alpha_model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1e-2, forgetting_factor=0.99)
 
     transform = PolynomialFeatures(poly_dim, include_bias=False)
     true_transform = PolynomialFeatures(true_poly_dim, include_bias=False)
@@ -102,6 +107,9 @@ def run_animate():
     model_line, = ax.plot([], [], lw=3, c='k')
     high_a_model_line, = ax.plot([], [], lw=3, c='r')
     low_a_model_line, = ax.plot([], [], lw=3, c='m')
+    forgetting_model_line, = ax.plot([], [], lw=3, c='b')
+    forgetting_high_a_model_line, = ax.plot([], [], lw=3, c='y')
+    forgetting_low_a_model_line, = ax.plot([], [], lw=3, c='c')
     true_line, = ax.plot([], [], lw=3, c='g')
     scatter = ax.scatter([], [], alpha=0.5)
     title = ax.text(0.85, 0.9, "", bbox={'facecolor':'w', 'alpha':0.5, 'pad':5}, 
@@ -115,42 +123,78 @@ def run_animate():
         model_line.set_data([], [])
         high_a_model_line.set_data([], [])
         low_a_model_line.set_data([], [])
+        forgetting_model_line.set_data([], [])
+        forgetting_high_a_model_line.set_data([], [])
+        forgetting_low_a_model_line.set_data([], [])
         true_line.set_data([], [])
         scatter.set_offsets(np.zeros((0, 2)))
         title.set_text("")
 
-        return model_line, high_a_model_line, low_a_model_line, true_line, scatter, title
+        x_data = []
+        y_data = []
+
+        return model_line, high_a_model_line, low_a_model_line, forgetting_model_line, forgetting_high_a_model_line, forgetting_low_a_model_line, true_line, scatter, title
 
     def animate(i):
+        global A, x_data, y_data
+        # Randomly perturbing A to test forgetting factor
+        if i == 0:
+            A = np.random.randn(1, test_in.shape[1])
+
         x_new = np.random.uniform(-1, 1, size=(1, 1))
         y_new = A.dot(true_transform.fit_transform(x_new).transpose()) + b + np.random.randn(1, 1) * 1e-1
 
         x_data.append(x_new)
         y_data.append(y_new)
 
+        if len(x_data) > 100:
+            x_data = x_data[-100:]
+            y_data = y_data[-100:]
+
         transformed_x = transform.fit_transform(x_new.transpose()).transpose()
         model.process_datum(transformed_x, y_new)
         high_alpha_model.process_datum(transformed_x, y_new)
         low_alpha_model.process_datum(transformed_x, y_new)
+        forgetting_model.process_datum(transformed_x, y_new)
+        forgetting_high_alpha_model.process_datum(transformed_x, y_new)
+        forgetting_low_alpha_model.process_datum(transformed_x, y_new)
 
         err = calc_mse(model, x_data, y_data, poly_dim)
-        print("\nAlpha=1.0 MSE is now {}".format(err))
+        print("\nLambda=1.0, Alpha=1.0 MSE is now {}".format(err))
         err = calc_mse(high_alpha_model, x_data, y_data, poly_dim)
-        print("Alpha=1e2 MSE is now {}".format(err))
+        print("Lambda=1.0, Alpha=1e2 MSE is now {}".format(err))
         err = calc_mse(low_alpha_model, x_data, y_data, poly_dim)
-        print("Alpha=1e-2 MSE is now {}".format(err))
+        print("Lambda=1.0, Alpha=1e-2 MSE is now {}".format(err))
+        err = calc_mse(forgetting_model, x_data, y_data, poly_dim)
+        print("Lambda=0.99, Alpha=1.0 MSE is now {}".format(err))
+        err = calc_mse(forgetting_high_alpha_model, x_data, y_data, poly_dim)
+        print("Lambda=0.99, Alpha=1e2 MSE is now {}".format(err))
+        err = calc_mse(forgetting_low_alpha_model, x_data, y_data, poly_dim)
+        print("Lambda=0.99, Alpha=1e-2 MSE is now {}".format(err))
 
         xx, preds = calc_model_preds(model, poly_dim)
         model_line.set_data(xx, preds)
-        model_line.set_label('alpha=1.0 model')
+        model_line.set_label('lambda=1.0, alpha=1.0 model')
 
         xx, preds = calc_model_preds(high_alpha_model, poly_dim)
         high_a_model_line.set_data(xx, preds)
-        high_a_model_line.set_label('alpha=1e2 model')
+        high_a_model_line.set_label('lambda=1.0, alpha=1e2 model')
 
         xx, preds = calc_model_preds(low_alpha_model, poly_dim)
         low_a_model_line.set_data(xx, preds)
-        low_a_model_line.set_label('alpha=1e-2 model')
+        low_a_model_line.set_label('lambda=1.0, alpha=1e-2 model')
+
+        xx, preds = calc_model_preds(forgetting_model, poly_dim)
+        forgetting_model_line.set_data(xx, preds)
+        forgetting_model_line.set_label('lambda=0.99, alpha=1.0 model')
+
+        xx, preds = calc_model_preds(forgetting_high_alpha_model, poly_dim)
+        forgetting_high_a_model_line.set_data(xx, preds)
+        forgetting_high_a_model_line.set_label('lambda=0.99, alpha=1e2 model')
+
+        xx, preds = calc_model_preds(forgetting_low_alpha_model, poly_dim)
+        forgetting_low_a_model_line.set_data(xx, preds)
+        forgetting_low_a_model_line.set_label('lambda=0.99, alpha=1e-2 model')
 
         xx, yy = calc_true_func(A, b, true_poly_dim)
         true_line.set_data(xx, yy)
@@ -161,9 +205,9 @@ def run_animate():
 
         legend = plt.legend()
 
-        title.set_text("Iteration {}".format(len(x_data)))
+        title.set_text("Iteration {}".format(i))
 
-        return model_line, high_a_model_line, low_a_model_line, true_line, scatter, title, legend
+        return model_line, high_a_model_line, low_a_model_line, forgetting_model_line, forgetting_high_a_model_line, forgetting_low_a_model_line, true_line, scatter, title, legend
     
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=200, interval=20, blit=True)
     plt.show()
