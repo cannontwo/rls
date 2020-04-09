@@ -1,8 +1,121 @@
 \subsection{Why Can't We Just Modify the Feature Vector?}
-\fixme{TODO}
+In some data science and machine learning circles, a common ad hoc way to avoid centering data prior to solving the least squares problem is to append a constant dimension to the feature vector, such that the new feature vectors are given by 
+\begin{equation}
+  \lambda'_t = 
+  \begin{bmatrix}
+    \lambda_t & 1
+  \end{bmatrix}
+\end{equation}
+Intuitively, the intention of this technique is to add an additional offset
+parameter $\theta_0$ to the least squares estimated parameters, which should
+then capture the constant offset term $\mu_y - \mu_x \hat\Theta$ which we
+calculated analytically above. In practice, though, this technique gives rise
+to an entire one-dimensional subspace of possible solutions to the
+least-squares problem, as can be shown using a bit of linear algebra, where the
+actual solution returned by solving the normal equations is determined by the
+particular numerical algorithm used to invert the covariance matrix. The
+addition of a constant feature to all input data makes the sample covariance
+matrix $X_T^\top X_T$ low-rank, so that the inverse $(X_T^\top X_T)^{-1}$ is
+ill-posed and gives rise to a subspace of possible solutions. The best solution
+of this subspace in expectation is precisely the one derived in
+Section~\ref{sec:uncentered}, but the feature vector augmentation technique
+gives no guarantees of recovering this solution.
 
 \subsection{Initializing $P_T$ and $Q_T$ and Connections to Ridge Regression}
-\fixme{TODO}
+The update equations derived in Sections~\ref{sec:centered}
+and~\ref{sec:uncentered} tell use how to move from the least-squares solution
+at timestep $T-1$ to the least-squares solution at timestep $T$, but they don't
+tell us how the relevant matrices should be initialized. For all involved
+matrices except $P_T$ (or $Q_T$, in the uncentered case), it is reasonable to
+initialize with matrices whose elements are all 0. If we initialize $P_T$ or
+$Q_T$ to zero matrices, however, Equations~\ref{eq:centered_p_update} and~\ref{eq:uncentered_Q_T_update} show that these matrices will never be updated at all (since the update equations are multiplicative in $P_T$ and $Q_T$, respectively). 
+
+This means that we need to initialize $P_T$ and $Q_T$ to some nonzero matrix
+before beginning the recursive least squares algorithm. In practice, this
+initialization matrix is usually chosen as some multiple of the identity, so
+that $P_0 = \alpha I$. This has a significant effect on the computed $\hat\Theta$, however, as can be seen if we examine the real normal equation in this situation:
+\begin{equation}
+  \hat\Theta_{REAL}(T) = (X_T^\top X_T + \frac{1}{\alpha} I)^{-1}X_T^\top Y
+\end{equation}
+This is precisely the solution for the ridge regression problem (also known as
+$l^2$ regularized least squares or Tikhonov regularization) with regularization
+coefficient $\frac{1}{\alpha}$. Thus any practical implementation of recursive
+least squares which keeps around an estimate of the inverse covariance matrix
+($P_T$ or $Q_T$ in our notation) is in fact computing a ridge regression
+estimator. This explains the common advice to use $\alpha \approx 10^6$; a
+large value for $\alpha$ corresponds to a low amount of $l^2$ regularization,
+and hence closer approximation to the unregularized least squares solution.
 
 \subsection{Forgetting Factors for Time-Varying Systems}
-\fixme{TODO}
+When the relationship between $\varphi_t$ and $y_t$ is assumed to change over
+time, we need some way of prioritizing recent data over historical data in
+recursive least squares. This is commonly done via a ``forgetting factor''
+$\lambda \in [0, 1]$. $\lambda$ is used to give exponentially smaller weight to
+older samples in the regression in a way that can be intuitively explained by
+its extremal values: when $\lambda = 0$ no datum prior to the current timestep
+is taken into account, and when $\lambda = 1$ we recover the recursive least
+squares algorithm derived above. Common values of $\lambda$ lie between $0.95$
+and $0.99$.
+
+The way that this is practically done is by reweighting the rows of the data matrix $X$ and target matrix $Y$. Where previously these were defined as simply the vertically stacked samples, we now define them as 
+\begin{align}
+  &X = 
+  \begin{bmatrix}
+    \varphi_T \\
+    \lambda \varphi_{T-1} \\
+    \vdots \\
+    \lambda^{T - 2} \varphi_2 \\
+    \lambda^{T - 1} \varphi_1
+  \end{bmatrix}
+  &Y = 
+  \begin{bmatrix}
+    y_T \\
+    \lambda y_{T-1} \\
+    \vdots \\
+    \lambda^{T - 2} y_2 \\
+    \lambda^{T - 1} y_1
+  \end{bmatrix}
+\end{align}
+Similarly we redefine $\mu_x(T)$ and $\mu_y(T)$ to be the means of these new matrices:
+\begin{align}
+  &\mu_x(T) = \frac{1}{T}\sum_{t=1}^T \lambda^{T - t} \varphi_t
+  &\mu_y(T) = \frac{1}{T}\sum_{t=1}^T \lambda^{T - t} y_t
+\end{align}
+By carrying this new $X$ and $Y$ through the same derivation as in the uncentered $X$, uncentered $Y$ case above, we can derive analogous matrices and update rules:
+\begin{align}
+  &C_T := \frac{1}{\lambda^2T^2}
+  \begin{bmatrix}
+    (2T - 1)^2 - 2T^2 & -(2T - 1)(T - 1) \\
+    -(2T - 1)(T - 1) & (T - 1)^2
+  \end{bmatrix} 
+  &V_T := 
+  \begin{bmatrix}
+    \lambda\mu_x(T - 1) \\
+    \varphi_T
+  \end{bmatrix} \\
+  &R_T := V_T^\top C_T V_T
+\end{align}
+\begin{equation}
+  Q_T = \frac{1}{\lambda^2} \left[Q_{T-1} - Q_{T-1}V_T^\top\left(C_T^{-1} + V_TQ_{T-1}V_T^\top\right)^{-1}V_TQ_{T-1}\right]
+\end{equation}
+\begin{align}
+  \hat\Theta_{RAW}(T) &= \hat\Theta_{RAW}(T-1) + Q_T\left[\varphi_T^\top y_T - R_T\hat\Theta_{RAW}(T-1)\right]\\
+  \hat\Theta_{LS}(T) &= \hat\Theta_{RAW}(T) - (2T - 1)Q_T\mu_x(T)^\top \mu_y(T)
+\end{align}
+
+One final note is in order about the recursive least squares algorithm with
+$\lambda$-forgetting: The connection that we drew earlier between the
+initialization of $Q_T$ and $l^2$ regularized least squares no longer holds, as
+the initial setting of $Q_T$ is multiplied by $\lambda^2$ at each timestep, and so
+the equivalent regularization coefficient gets smaller with each new
+datapoint. More precisely, the recursive least squares solution with
+$\lambda$-forgetting and an initialization of $Q_0 = \alpha I$ will, at time
+$T$, compute the equivalent ridge regression solution
+\begin{equation}
+  \hat\Theta_{REAL} = (X_T^\top X_T + \frac{1}{\alpha \lambda^{2T}})^{-1}X_T^\top Y
+\end{equation}
+
+This may be desirable if one wishes to smoothly interpolate between
+the ridge regression solution when little data is available and the
+unregularized least squares solution in the limit of infinite data, but we are
+not aware of any existing statistical analysis of this interpolation.

@@ -141,7 +141,7 @@ So that
 The Woodbury matrix identity (Equation~\ref{eq:woodbury}) gives us, at the end
 of all this, an update rule for $Q_T$:
 \begin{equation}
-  Q_T = Q_{T - 1} - Q_{T - 1}V_T^\top\left(C_T^{-1} + V_TQ_{T-1}V_T^\top\right)^{-1}V_TQ_{T-1}
+  Q_T = Q_{T - 1} - Q_{T - 1}V_T^\top\left(C_T^{-1} + V_TQ_{T-1}V_T^\top\right)^{-1}V_TQ_{T-1} \label{eq:uncentered_Q_T_update}
 \end{equation}
 Note that this is a rank-2 update to $Q_{T-1}$, since we are using both the
 sample mean at time $T - 1$ and the new data at time $T$ to compute the update.

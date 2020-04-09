@@ -81,8 +81,8 @@ def run(alpha=1e4):
 
 def run_animate():
     global A, x_data, y_data
-    poly_dim = 5
-    true_poly_dim = 5
+    poly_dim = 1
+    true_poly_dim = 1
 
     model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1.0)
     high_alpha_model = RLSFilterAnalyticIntercept(poly_dim, 1, alpha=1e2)
