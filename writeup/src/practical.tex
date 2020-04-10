@@ -112,7 +112,7 @@ datapoint. More precisely, the recursive least squares solution with
 $\lambda$-forgetting and an initialization of $Q_0 = \alpha I$ will, at time
 $T$, compute the equivalent ridge regression solution
 \begin{equation}
-  \hat\Theta_{REAL} = (X_T^\top X_T + \frac{1}{\alpha \lambda^{2T}})^{-1}X_T^\top Y
+  \hat\Theta_{REAL} = (X_T^\top X_T + \frac{\lambda^{2T}}{\alpha}I)^{-1}X_T^\top Y
 \end{equation}
 
 This may be desirable if one wishes to smoothly interpolate between
