@@ -103,3 +103,42 @@ class RLSFilterAnalyticIntercept():
         assert(prediction.shape == (self.output_dim, 1))
 
         return prediction
+
+class RecursiveLassoFilter():
+    def __init__(self, input_dim, output_dim, alpha=1.0, forgetting_factor=1.0, gamma=1.0):
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.param_dim = input_dim
+
+        self.alpha = alpha
+        self.gamma = gamma
+        self.forgetting_factor = forgetting_factor
+
+        self.intercept = np.zeros((self.output_dim, 1))
+        self.theta = np.zeros((self.param_dim, self.output_dim))
+
+        self.ls_filter = RLSFilterAnalyticIntercept(input_dim, output_dim, alpha=alpha, forgetting_factor=forgetting_factor)
+
+    def _update_params(self):
+        mod_ls_theta = np.abs(self.ls_filter.corrected_theta) - self.gamma
+        mod_ls_intercept = np.abs(self.ls_filter.intercept) - self.gamma
+
+        mod_ls_theta[mod_ls_theta < 0.0] = 0.0
+        mod_ls_intercept[mod_ls_intercept < 0.0] = 0.0
+
+        self.theta = np.sign(self.ls_filter.corrected_theta) * mod_ls_theta
+        self.intercept = np.sign(self.ls_filter.intercept) * mod_ls_intercept
+
+    def process_datum(self, in_vec, output):
+        self.ls_filter.process_datum(in_vec, output)
+        self._update_params()
+
+    def get_identified_mats(self):
+        return self.theta.transpose(), self.intercept
+
+    def predict(self, in_vec):
+        feat = self.ls_filter._make_feature_vec(in_vec)
+        prediction = feat.dot(self.theta).transpose() + self.intercept
+        assert(prediction.shape == (self.output_dim, 1))
+
+        return prediction
